@@ -1,76 +1,83 @@
  // Adjust the path based on the actual location
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { isAuth } from "../Middleware/isAuth.js";
+
 import sendMail  from "../Service/Nodemailer.js";
 import TryCatch from "../Middleware/TryCatch.js";
 import { User } from './../Model/User.schema.js';
 import { sendForgotMail } from "../Service/Nodemailer.js";
 
 export const Register = TryCatch(async (req, res) => {
-  const { name, password, email } = req.body;
-  const user = await User.findOne({ email });
-  if (user) {
-      return res.status(401).json({ message: "User already exists" });
-  }
+  const { email, name, password } = req.body;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = {
-      name,
-      email,
-      password: hashedPassword
+  let user = await User.findOne({ email });
+
+  if (user)
+    return res.status(400).json({
+      message: "User Already exists",
+    });
+
+  const hashPassword = await bcrypt.hash(password, 10);
+
+  user = {
+    name,
+    email,
+    password: hashPassword,
   };
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
+  const otp = Math.floor(Math.random() * 1000000);
 
   const activationToken = jwt.sign(
-      { user: newUser, otp },
-      process.env.JWT_SECRET,
-      { expiresIn: "5m" }
+    {
+      user,
+      otp,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "5m",
+    }
   );
 
-  console.log("Generated OTP:", otp);
-  console.log("Token on registration:", activationToken);
-
-  // Prepare the data for the email
   const data = {
-      name,
-      otp
+    name,
+    otp,
   };
 
-  // Send the activation email
-  await sendMail(email, "Your OTP Code", data);
-  res.status(200).json({ message: "OTP sent to your email", activationToken });
+  await sendMail(email, "E learning", data);
+
+  res.status(200).json({
+    message: "Otp send to your mail",
+    activationToken,
+  });
 });
+
+
+
  
 export const VerifyOtp = TryCatch(async (req, res) => {
-  const { otp, activationToken } = req.body; // Get OTP and activationToken from request body
+  const { otp, activationToken } = req.body;
 
-  console.log("Received OTP for verification:", otp);
-  console.log("Token received for verification:", activationToken);
+  const verify = jwt.verify(activationToken, process.env.JWT_SECRET);
 
-  let verify;
-  try {
-      verify = jwt.verify(activationToken, process.env.JWT_SECRET);
-  } catch (err) {
-      return res.status(400).json({ message: "OTP expired or invalid" });
-  }
+  if (!verify)
+    return res.status(400).json({
+      message: "Otp Expired",
+    });
 
-  console.log("Decoded OTP from token:", verify.otp);
-
-  if (verify.otp !== otp) {
-      return res.status(400).json({ message: "Wrong OTP" });
-  }
-
-  const { name, email, password } = verify.user;
+    if (String(verify.otp) !== String(otp))
+      return res.status(400).json({
+        message: "Wrong OTP",
+      });
 
   await User.create({
-      name,
-      email,
-      password
+    name: verify.user.name,
+    email: verify.user.email,
+    password: verify.user.password,
   });
 
-  res.status(200).json({ message: "User verified and registered successfully" });
+  res.json({
+    message: "User Registered",
+  });
 });
 
 
