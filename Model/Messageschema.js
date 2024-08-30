@@ -8,7 +8,7 @@
 //         required: true
 //     },
 //     content: {
-//         type: String,
+//         type: String, 
 //         required: true
 //     },
 //     sent_at: {

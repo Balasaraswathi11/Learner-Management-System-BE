@@ -42,7 +42,7 @@ export const sendChatNotification = async (student, mentor, messageContent) => {
             </div>
         </div>
     </body>
-    </html>
+    </html>    
     `;
 
     const mailOptions = {
