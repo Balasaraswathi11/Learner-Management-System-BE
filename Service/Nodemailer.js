@@ -155,7 +155,7 @@ export const sendForgotMail = async (subject, data) => {
         </div>
       </div>
     </body>
-    </html>
+    </html> 
   `;
 
   const mailOptions = {
